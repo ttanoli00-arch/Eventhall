@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ایونٹ ہال بکنگ پاکستان</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; max-width:100%; overflow-x:hidden; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background:#f8f5ff; direction:rtl; color:#1a0533; }
+:root { --purple:#3d1a6e; --purple-dark:#2d1257; --gold:#d4a017; }
+.empty-state { text-align:center; padding:40px; color:#888; }
+.btn-approve { background:#16a34a; color:#fff; border:none; border-radius:10px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; flex:1; }
+.btn-reject { background:#dc2626; color:#fff; border:none; border-radius:10px; padding:9px; font-size:13px; cursor:pointer; flex:1; }
+.approve-reject { display:flex; gap:8px; margin-top:8px; }
+.pending-card { background:#fff; border-radius:16px; padding:14px; margin-bottom:12px; border-right:4px solid #3d1a6e; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ===== GLOBAL DATA =====
+let bookingHistory = [];
+let ownerAccounts = {};
+let halls = [];
+
+// ===== INIT - LOAD EVERYTHING FROM LOCALSTORAGE =====
+function initApp() {
+  // Load bookings
+  const savedBookings = localStorage.getItem('bookings');
+  if(savedBookings) {
+    try {
+      bookingHistory = JSON.parse(savedBookings);
+      console.log('✅ Bookings loaded:', bookingHistory.length);
+    } catch(e) {
+      console.log('Error loading bookings');
+      bookingHistory = [];
+    }
+  }
+  
+  // Load owners
+  const savedOwners = localStorage.getItem('ownerAccounts');
+  if(savedOwners) {
+    try {
+      ownerAccounts = JSON.parse(savedOwners);
+      console.log('✅ Owners loaded:', Object.keys(ownerAccounts).length);
+    } catch(e) {
+      console.log('Error loading owners');
+      ownerAccounts = {};
+    }
+  }
+  
+  console.log('App initialized!');
+  renderApp();
+}
+
+// ===== SAVE FUNCTIONS =====
+function saveBooking(booking) {
+  bookingHistory.push(booking);
+  localStorage.setItem('bookings', JSON.stringify(bookingHistory));
+  console.log('✅ Booking saved!', bookingHistory.length);
+}
+
+function saveOwner(email, owner) {
+  ownerAccounts[email] = owner;
+  localStorage.setItem('ownerAccounts', JSON.stringify(ownerAccounts));
+  console.log('✅ Owner saved!');
+}
+
+function approveBooking(i) {
+  if(!bookingHistory[i]) return;
+  bookingHistory[i].status = 'منظور';
+  localStorage.setItem('bookings', JSON.stringify(bookingHistory));
+  renderApp();
+  alert('✅ منظور!');
+}
+
+function rejectBooking(i) {
+  bookingHistory.splice(i, 1);
+  localStorage.setItem('bookings', JSON.stringify(bookingHistory));
+  renderApp();
+  alert('❌ مسترد!');
+}
+
+// ===== RENDER =====
+function renderApp() {
+  let html = `
+    <div style="background:linear-gradient(135deg,#3d1a6e,#2d1257);color:#fff;padding:20px;text-align:center;border-bottom:3px solid #d4a017;">
+      <h1 style="margin:0;font-size:24px;">ایونٹ ہال بکنگ 💛</h1>
+      <p>Book | Celebrate | Cherish</p>
+    </div>
+    
+    <div style="padding:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+        <button onclick="showBookingForm()" style="background:#3d1a6e;color:#fff;border:none;border-radius:12px;padding:15px;cursor:pointer;font-size:16px;font-weight:700;">📅 نئی بکنگ</button>
+        <button onclick="showOwnerForm()" style="background:#3d1a6e;color:#fff;border:none;border-radius:12px;padding:15px;cursor:pointer;font-size:16px;font-weight:700;">🏛️ مالک رجسٹریشن</button>
+      </div>
+      
+      <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;">
+        <h3 style="color:#2d1257;margin-bottom:10px;">📊 اعدادو شمار</h3>
+        <p><strong>کل بکنگ:</strong> ${bookingHistory.length}</p>
+        <p><strong>منظور:</strong> ${bookingHistory.filter(b=>b.status==='منظور').length}</p>
+        <p><strong>زیر نظر:</strong> ${bookingHistory.filter(b=>b.status==='زیر نظر').length}</p>
+      </div>
+      
+      <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;">
+        <h3 style="color:#2d1257;margin-bottom:10px;">📋 تمام بکنگز</h3>
+        ${bookingHistory.length > 0 ? bookingHistory.map((b,i) => `
+          <div class="pending-card">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <b style="color:#2d1257;">${b.name}</b>
+              <span style="background:#f5f0ff;color:#3d1a6e;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;">${b.status}</span>
+            </div>
+            <p style="margin:4px 0;font-size:12px;color:#666;">📅 ${b.date}</p>
+            <p style="margin:4px 0;font-size:12px;color:#666;">🏛️ ${b.hall}</p>
+            <p style="margin:4px 0;font-size:12px;color:#666;">📱 ${b.phone}</p>
+            <div class="approve-reject">
+              <button class="btn-approve" onclick="approveBooking(${i})">✅ منظور</button>
+              <button class="btn-reject" onclick="rejectBooking(${i})">❌ مسترد</button>
+            </div>
+          </div>
+        `).join('') : '<div class="empty-state"><p>کوئی بکنگ نہیں</p></div>'}
+      </div>
+      
+      <div style="background:#fff;border-radius:16px;padding:20px;">
+        <h3 style="color:#2d1257;margin-bottom:10px;">👥 مالکان</h3>
+        ${Object.keys(ownerAccounts).length > 0 ? Object.entries(ownerAccounts).map(([email,owner]) => `
+          <div class="pending-card">
+            <p><b>${owner.name}</b></p>
+            <p style="font-size:12px;color:#666;">${email}</p>
+            <p style="font-size:12px;color:#666;">Status: ${owner.approved ? '✅ منظور' : '⏳ زیر نظر'}</p>
+          </div>
+        `).join('') : '<div class="empty-state"><p>کوئی مالک نہیں</p></div>'}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('app').innerHTML = html;
+}
+
+function showBookingForm() {
+  const name = prompt('آپ کا نام:');
+  if(!name) return;
+  const phone = prompt('فون نمبر:');
+  if(!phone) return;
+  const hall = prompt('ہال کا نام:');
+  if(!hall) return;
+  const date = prompt('تاریخ:');
+  if(!date) return;
+  
+  const booking = {
+    name,
+    phone,
+    hall,
+    date,
+    status: 'زیر نظر',
+    timestamp: new Date().toLocaleString('ur-PK')
+  };
+  
+  saveBooking(booking);
+  renderApp();
+  alert('✅ بکنگ محفوظ ہو گئی!');
+}
+
+function showOwnerForm() {
+  const name = prompt('مالک کا نام:');
+  if(!name) return;
+  const email = prompt('ای میل:');
+  if(!email) return;
+  
+  if(ownerAccounts[email]) {
+    alert('یہ ای میل پہلے سے موجود ہے!');
+    return;
+  }
+  
+  const owner = {
+    name,
+    email,
+    approved: false,
+    timestamp: new Date().toLocaleString('ur-PK')
+  };
+  
+  saveOwner(email, owner);
+  renderApp();
+  alert('✅ رجسٹریشن محفوظ ہو گئی!');
+}
+
+// ===== START =====
+initApp();
+</script>
+
+</body>
+</html>
